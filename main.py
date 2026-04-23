@@ -1,6 +1,6 @@
 import subprocess
 
-print("launching server window...")
+print("launching server window..")
 
 subprocess.Popen([
     "konsole",
