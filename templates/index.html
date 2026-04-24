@@ -7,37 +7,85 @@
       background: black;
       color: white;
       font-family: sans-serif;
-      display: flex;
-      height: 100vh;
+      overflow: hidden;
     }
 
     .left {
-      width: 300px;
-      padding: 20px;
-      border-right: 1px solid #333;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 700px; /* was 320 */
+    height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+    }
+
+    a {
+    color: #aaa;
+    text-decoration: none;
+    pointer-events: auto;
+    position: relative;
+    z-index: 10;
+    }
+
+    a:hover {
+    text-decoration: underline;
+    }
+
+
+    .status {
+    margin-bottom: 40px;
+    }
+
+    .about {
+    position: absolute;
+    top: 50%;
+    left: 500px;   /* controls how far right it is */
+    transform: translateY(-50%);
+    width: 280px;
+    opacity: 0.85;
     }
 
     .right {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    margin-left: 750px;
+    height: 100vh;
+    display: flex;
+    justify-content: flex-start; /* change this to move horizontally */
+    align-items: center;
+    box-sizing: border-box;
+    padding-left: 200px
+
     }
 
     img {
-      max-height: 80vh;
+      max-height: 55vh;
     }
   </style>
 </head>
+
 <body>
 
   <div class="left">
-    <h3>status</h3>
-    <div id="status">loading...</div>
+
+    <div class="status">
+      <h3>status</h3>
+      <div id="status">loading...</div>
+    </div>
+
+    <div class="about">
+      <h3>hi, im cayy!</h3>
+      <p>
+        im <a href="https://en.wikipedia.org/wiki/Aromantic_asexual" target="_blank">aroace</a><br>
+        i do some coding things<br>
+        oneshot fan<br>
+        unfortunately played rec room from 2020 - 2026
+      </p>
+    </div>
+
   </div>
 
   <div class="right">
-    <img src="/static/funny.gif">
+    <img src="/static/niko.gif">
   </div>
 
   <script>
@@ -46,11 +94,13 @@
       const data = await res.json()
 
       document.getElementById("status").innerHTML = `
-        cpu: ${data.cpu_percent}%<br>
-        ram: ${data.ram_percent}%<br>
-        used ram: ${data.ram_used_mb} mb<br>
+        cpu: ${data.cpu}%<br>
+        ram: ${data.ram}%<br>
+        used ram: ${data.ram_mb} mb<br>
         uptime: ${data.uptime_sec}s<br>
-        disk: ${data.disk_percent}%
+        disk: ${data.disk}%<br>
+        hostname: ${data.hostname}<br>
+        os: ${data.os}
       `
     }
 
