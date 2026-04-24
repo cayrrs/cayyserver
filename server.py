@@ -41,7 +41,8 @@ def status():
 
 if __name__ == "__main__":
     print("starting bot...")
-    threading.Thread(target=start_bot, daemon=True).start()
+    start_bot()
+    print("bot started")
     print("flask starting...")
     app.run(host="0.0.0.0", port=8000, debug=False) # i hate that this is a BLOCKING FUCING THING MY GOD
 
