@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify
 import psutil
 import time
+import platform
 
 app = Flask(__name__)
 start_time = time.time()
@@ -16,7 +17,9 @@ def status():
         "ram": psutil.virtual_memory().percent,
         "ram_mb": psutil.virtual_memory().used // 1024 // 1024,
         "uptime_sec": int(time.time() - start_time),
-        "disk": psutil.disk_usage("/").percent
+        "disk": psutil.disk_usage("/").percent,
+        "hostname": platform.node(),
+        "os": platform.system()
     })
 
 if __name__ == "__main__":
