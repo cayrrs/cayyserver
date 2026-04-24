@@ -2,9 +2,26 @@ from flask import Flask, render_template, jsonify
 import psutil
 import time
 import platform
+import subprocess
+import threading
 
 app = Flask(__name__)
 start_time = time.time()
+
+
+def start_bot():
+    print("starting bot...")
+
+    proc = subprocess.Popen(
+        ["python", "dc bot/main.py"],
+        cwd=".",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+
+    for line in proc.stdout:
+        print(f"[dcbot] {line}", end="")
 
 @app.route("/")
 def home():
@@ -23,5 +40,9 @@ def status():
     })
 
 if __name__ == "__main__":
+    print("starting bot...")
+    threading.Thread(target=start_bot, daemon=True).start()
     print("flask starting...")
-    app.run(host="0.0.0.0", port=8000, debug=False)
+    app.run(host="0.0.0.0", port=8000, debug=False) # i hate that this is a BLOCKING FUCING THING MY GOD
+
+    
