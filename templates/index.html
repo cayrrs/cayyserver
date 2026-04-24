@@ -5,34 +5,58 @@
     body {
       margin: 0;
       background: black;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
       color: white;
       font-family: sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+
+    .left {
+      width: 300px;
+      padding: 20px;
+      border-right: 1px solid #333;
+    }
+
+    .right {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     img {
       max-height: 80vh;
     }
-
-    .footer {
-      position: absolute;
-      bottom: 10px;
-      font-size: 14px;
-      opacity: 0.7;
-    }
   </style>
 </head>
 <body>
 
-  <img src="/static/niko.gif">
-
-  <div class="footer">
-    oneshot is peak
+  <div class="left">
+    <h3>status</h3>
+    <div id="status">loading...</div>
   </div>
+
+  <div class="right">
+    <img src="/static/funny.gif">
+  </div>
+
+  <script>
+    async function loadStatus() {
+      const res = await fetch("/status")
+      const data = await res.json()
+
+      document.getElementById("status").innerHTML = `
+        cpu: ${data.cpu_percent}%<br>
+        ram: ${data.ram_percent}%<br>
+        used ram: ${data.ram_used_mb} mb<br>
+        uptime: ${data.uptime_sec}s<br>
+        disk: ${data.disk_percent}%
+      `
+    }
+
+    loadStatus()
+    setInterval(loadStatus, 2000)
+  </script>
 
 </body>
 </html>
