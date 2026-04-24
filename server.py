@@ -13,7 +13,7 @@ def start_bot():
     print("starting bot...")
 
     proc = subprocess.Popen(
-        ["/venv/bin/python", "dc bot/main.py"],
+        ["/home/deck/server/venv/bin/python", "dc bot/main.py"],
         cwd=".",
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
