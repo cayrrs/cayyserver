@@ -41,6 +41,7 @@ def status():
 
 if __name__ == "__main__":
     print("starting bot...")
+    time.sleep(5) #delay cause steamdeck dosen't connect to wifi in time
     start_bot()
     print("bot started")
     print("flask starting...")
