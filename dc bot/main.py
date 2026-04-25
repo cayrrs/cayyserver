@@ -150,6 +150,103 @@ async def ttt(interaction: discord.Interaction, user: discord.User):
     )
 
 
+wins = {
+    "rock": "scissors",
+    "scissors": "paper",
+    "paper": "rock"
+}
+
+class RPSView(discord.ui.View):
+    def __init__(self, p1, p2):
+        super().__init__(timeout=120)
+        self.p1 = p1
+        self.p2 = p2
+        self.picks = {}
+        self.game_over = False
+
+    def resolve(self):
+        a = self.picks[self.p1.id]
+        b = self.picks[self.p2.id]
+
+        if a == b:
+            return "draw"
+
+        if wins[a] == b:
+            return f"{self.p1.mention} wins"
+        return f"{self.p2.mention} wins"
+
+    async def handle_pick(self, interaction: discord.Interaction, pick: str):
+        if self.game_over:
+            return
+
+        if interaction.user.id not in (self.p1.id, self.p2.id):
+            await interaction.response.send_message("not your game", ephemeral=True)
+            return
+
+        if interaction.user.id in self.picks:
+            await interaction.response.send_message("you already picked", ephemeral=True)
+            return
+
+        self.picks[interaction.user.id] = pick
+        await interaction.response.send_message(f"you picked {pick}", ephemeral=True)
+
+        # wait until both picked
+        if len(self.picks) < 2:
+            return
+
+        self.game_over = True
+
+        result = self.resolve()
+
+        for item in self.children:
+            item.disabled = True
+
+        try:
+            await interaction.message.edit(
+                content=f"rps finished: {result}",
+                view=self
+            )
+        except:
+            pass
+
+    @discord.ui.button(label="rock", style=discord.ButtonStyle.secondary)
+    async def rock(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.handle_pick(interaction, "rock")
+
+    @discord.ui.button(label="paper", style=discord.ButtonStyle.secondary)
+    async def paper(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.handle_pick(interaction, "paper")
+
+    @discord.ui.button(label="scissors", style=discord.ButtonStyle.secondary)
+    async def scissors(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.handle_pick(interaction, "scissors")
+
+
+# ---------------- COMMAND ----------------
+
+@tree.command(name="rps", description="1v1 rock paper scissors")
+@app_commands.describe(user="who you want to fight")
+@discord.app_commands.allowed_contexts(
+    guilds=True,
+    dms=True,
+    private_channels=True
+)
+async def rps(interaction: discord.Interaction, user: discord.User):
+
+    if user.id == interaction.user.id:
+        await interaction.response.send_message("you can't fight yourself", ephemeral=True)
+        return
+
+    view = RPSView(interaction.user, user)
+
+    # IMPORTANT: respond immediately (prevents 10062)
+    await interaction.response.send_message(
+        f"rps match: {interaction.user.mention} vs {user.mention}\nboth pick your move",
+        view=view
+    )
+
+
+
 
 @tree.command(name="pc", description="shows pc stats")
 @discord.app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
