@@ -61,6 +61,7 @@ class TicTacToe(discord.ui.View):
 
 
 @tree.command(name="tictactoe", description="play vs bot")
+@discord.app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def ttt(interaction: discord.Interaction):
     await interaction.response.send_message(
         "your turn",
