@@ -162,7 +162,7 @@ class RPSView(discord.ui.View):
         self.p1 = p1
         self.p2 = p2
         self.picks = {}
-        self.game_over = False
+        self.done = False
 
     def resolve(self):
         a = self.picks[self.p1.id]
@@ -175,8 +175,32 @@ class RPSView(discord.ui.View):
             return f"{self.p1.mention} wins"
         return f"{self.p2.mention} wins"
 
+    async def finish(self, interaction: discord.Interaction, result: str):
+        for item in self.children:
+            item.disabled = True
+
+        self.done = True
+
+        # ALWAYS try edit original first
+        try:
+            await interaction.edit_original_response(
+                content=f"rps finished: {result}",
+                view=self
+            )
+            return
+        except:
+            pass
+
+        # fallback (guaranteed message)
+        try:
+            await interaction.followup.send(
+                f"rps finished: {result}"
+            )
+        except:
+            pass
+
     async def handle_pick(self, interaction: discord.Interaction, pick: str):
-        if self.game_over:
+        if self.done:
             return
 
         if interaction.user.id not in (self.p1.id, self.p2.id):
@@ -184,45 +208,32 @@ class RPSView(discord.ui.View):
             return
 
         if interaction.user.id in self.picks:
-            await interaction.response.send_message("you already picked", ephemeral=True)
+            await interaction.response.send_message("already picked", ephemeral=True)
             return
 
         self.picks[interaction.user.id] = pick
-        await interaction.response.send_message(f"you picked {pick}", ephemeral=True)
 
-        # wait until both picked
+        await interaction.response.send_message(f"picked {pick}", ephemeral=True)
+
+        # not ready yet
         if len(self.picks) < 2:
             return
 
-        self.game_over = True
-
         result = self.resolve()
-
-        for item in self.children:
-            item.disabled = True
-
-        try:
-            await interaction.message.edit(
-                content=f"rps finished: {result}",
-                view=self
-            )
-        except:
-            pass
+        await self.finish(interaction, result)
 
     @discord.ui.button(label="rock", style=discord.ButtonStyle.secondary)
-    async def rock(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def rock(self, interaction, button):
         await self.handle_pick(interaction, "rock")
 
     @discord.ui.button(label="paper", style=discord.ButtonStyle.secondary)
-    async def paper(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def paper(self, interaction, button):
         await self.handle_pick(interaction, "paper")
 
     @discord.ui.button(label="scissors", style=discord.ButtonStyle.secondary)
-    async def scissors(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def scissors(self, interaction, button):
         await self.handle_pick(interaction, "scissors")
 
-
-# ---------------- COMMAND ----------------
 
 @tree.command(name="rps", description="1v1 rock paper scissors")
 @app_commands.describe(user="who you want to fight")
@@ -239,12 +250,11 @@ async def rps(interaction: discord.Interaction, user: discord.User):
 
     view = RPSView(interaction.user, user)
 
-    # IMPORTANT: respond immediately (prevents 10062)
+    # ALWAYS respond instantly (no timeout possible)
     await interaction.response.send_message(
-        f"rps match: {interaction.user.mention} vs {user.mention}\nboth pick your move",
+        f"rps match: {interaction.user.mention} vs {user.mention}",
         view=view
     )
-
 
 
 
