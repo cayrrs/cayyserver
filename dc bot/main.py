@@ -58,12 +58,14 @@ class TicTacToe(discord.ui.View):
             btn.disabled = True
 
             if self.check_win("X"):
-                self.disable_all_items()
+                for item in self.children:
+                    item.disabled = True
                 await interaction.response.edit_message(content="you win", view=self)
                 return
 
             if self.check_draw():
-                self.disable_all_items()
+                for item in self.children:
+                    item.disabled = True
                 await interaction.response.edit_message(content="draw", view=self)
                 return
 
@@ -76,12 +78,14 @@ class TicTacToe(discord.ui.View):
                 self.children[m].disabled = True
 
             if self.check_win("O"):
-                self.disable_all_items()
+                for item in self.children:
+                    item.disabled = True
                 await interaction.response.edit_message(content="bot wins", view=self)
                 return
 
             if self.check_draw():
-                self.disable_all_items()
+                for item in self.children:
+                    item.disabled = True
                 await interaction.response.edit_message(content="draw", view=self)
                 return
 
