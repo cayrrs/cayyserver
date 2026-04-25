@@ -26,8 +26,10 @@ async def on_ready():
 class TicTacToe(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=60)
-        self.board = [" "]*9
-        self.current = "X"
+        self.board = [" "] * 9
+
+        for i in range(9):
+            self.add_item(self.make_button(i))
 
     def check_win(self, p):
         wins = [
@@ -40,69 +42,52 @@ class TicTacToe(discord.ui.View):
     def check_draw(self):
         return " " not in self.board
 
-    async def bot_move(self, interaction):
-        empty = [i for i,v in enumerate(self.board) if v==" "]
-        if not empty:
-            return
-        move = random.choice(empty)
-        self.board[move] = "O"
-        self.children[move].label = "O"
-        self.children[move].disabled = True
+    def make_button(self, i):
+        button = discord.ui.Button(label=" ", style=discord.ButtonStyle.secondary, row=i//3)
 
-    async def update(self, interaction):
-        if self.check_win("X"):
-            self.disable_all_items()
-            await interaction.response.edit_message(content="you win", view=self)
-            return
-        if self.check_win("O"):
-            self.disable_all_items()
-            await interaction.response.edit_message(content="bot wins", view=self)
-            return
-        if self.check_draw():
-            self.disable_all_items()
-            await interaction.response.edit_message(content="draw", view=self)
-            return
-
-        await self.bot_move(interaction)
-
-        if self.check_win("O"):
-            self.disable_all_items()
-            await interaction.response.edit_message(content="bot wins", view=self)
-            return
-        if self.check_draw():
-            self.disable_all_items()
-            await interaction.response.edit_message(content="draw", view=self)
-            return
-
-        await interaction.response.edit_message(content="your turn", view=self)
-
-
-for i in range(9):
-    async def callback(interaction, i=i):
-        view: TicTacToe = interaction.message.components[0].view
-
-    def make_button(i):
-        async def cb(interaction: discord.Interaction):
-            view: TicTacToe = interaction.message._view
-            if view.board[i] != " ":
+        async def callback(interaction: discord.Interaction):
+            if self.board[i] != " ":
                 return
-            view.board[i] = "X"
-            btn = view.children[i]
-            btn.label = "X"
-            btn.disabled = True
-            await view.update(interaction)
-        return cb
 
-    btn = discord.ui.Button(label=" ", style=discord.ButtonStyle.secondary)
-    btn.callback = make_button(i)
-    TicTacToe.add_item(btn)
+            self.board[i] = "X"
+            button.label = "X"
+            button.disabled = True
+
+            if self.check_win("X"):
+                self.disable_all_items()
+                await interaction.response.edit_message(content="you win", view=self)
+                return
+
+            if self.check_draw():
+                self.disable_all_items()
+                await interaction.response.edit_message(content="draw", view=self)
+                return
+
+            # bot move
+            empty = [x for x,v in enumerate(self.board) if v==" "]
+            move = random.choice(empty)
+
+            self.board[move] = "O"
+            self.children[move].label = "O"
+            self.children[move].disabled = True
+
+            if self.check_win("O"):
+                self.disable_all_items()
+                await interaction.response.edit_message(content="bot wins", view=self)
+                return
+
+            await interaction.response.edit_message(content="your turn", view=self)
+
+        button.callback = callback
+        return button
 
 
-@tree.command(name="tictactoe", description="play tic tac toe vs bot")
-@discord.app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-async def tictactoe(interaction: discord.Interaction):
-    view = TicTacToe()
-    await interaction.response.send_message("your turn", view=view)
+@tree.command(name="tictactoe", description="play vs bot")
+async def ttt(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        "your turn",
+        view=TicTacToe()
+    )
 
 
 
