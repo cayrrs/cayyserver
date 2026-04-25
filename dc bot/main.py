@@ -27,6 +27,7 @@ class TicTacToe(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=60)
         self.board = [" "] * 9
+        self.game_over = False
 
         for i in range(9):
             self.add_item(self.make_button(i))
@@ -37,10 +38,15 @@ class TicTacToe(discord.ui.View):
             (0,3,6),(1,4,7),(2,5,8),
             (0,4,8),(2,4,6)
         ]
-        return any(self.board[a]==self.board[b]==self.board[c]==p for a,b,c in wins)
+        return any(self.board[a] == self.board[b] == self.board[c] == p for a,b,c in wins)
 
     def check_draw(self):
         return " " not in self.board
+
+    def end_game(self):
+        self.game_over = True
+        for item in self.children:
+            item.disabled = True
 
     def make_button(self, i):
         btn = discord.ui.Button(
@@ -50,27 +56,31 @@ class TicTacToe(discord.ui.View):
         )
 
         async def callback(interaction: discord.Interaction):
+            if self.game_over:
+                return
+
             if self.board[i] != " ":
                 return
 
+            # user move
             self.board[i] = "X"
             btn.label = "❌"
             btn.disabled = True
 
+            await interaction.response.defer()
+
             if self.check_win("X"):
-                for item in self.children:
-                    item.disabled = True
-                await interaction.response.edit_message(content="you win", view=self)
+                self.end_game()
+                await interaction.edit_original_response(content="you win", view=self)
                 return
 
             if self.check_draw():
-                for item in self.children:
-                    item.disabled = True
-                await interaction.response.edit_message(content="draw", view=self)
+                self.end_game()
+                await interaction.edit_original_response(content="draw", view=self)
                 return
 
             # bot move
-            empty = [x for x,v in enumerate(self.board) if v==" "]
+            empty = [x for x, v in enumerate(self.board) if v == " "]
             if empty:
                 m = random.choice(empty)
                 self.board[m] = "O"
@@ -78,18 +88,16 @@ class TicTacToe(discord.ui.View):
                 self.children[m].disabled = True
 
             if self.check_win("O"):
-                for item in self.children:
-                    item.disabled = True
-                await interaction.response.edit_message(content="bot wins", view=self)
+                self.end_game()
+                await interaction.edit_original_response(content="bot wins", view=self)
                 return
 
             if self.check_draw():
-                for item in self.children:
-                    item.disabled = True
-                await interaction.response.edit_message(content="draw", view=self)
+                self.end_game()
+                await interaction.edit_original_response(content="draw", view=self)
                 return
 
-            await interaction.response.edit_message(view=self)
+            await interaction.edit_original_response(content="your turn", view=self)
 
         btn.callback = callback
         return btn
