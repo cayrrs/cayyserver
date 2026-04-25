@@ -17,6 +17,8 @@ start_time = time.time()
 async def on_ready():
     await tree.sync()
     print(f"logged in as {client.user}")
+    synced = await tree.sync()
+    print(f"synced {len(synced)} commands globally")
 
 @tree.command(name="pc", description="shows pc stats")
 @discord.app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
