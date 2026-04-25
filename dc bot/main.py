@@ -23,30 +23,32 @@ async def on_ready():
 
 
 
-class TicTacToe(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=60)
+wins = [
+    (0,1,2),(3,4,5),(6,7,8),
+    (0,3,6),(1,4,7),(2,5,8),
+    (0,4,8),(2,4,6)
+]
+
+class TicTacToePvP(discord.ui.View):
+    def __init__(self, p1, p2):
+        super().__init__(timeout=120)
         self.board = [" "] * 9
+        self.p1 = p1
+        self.p2 = p2
+        self.turn = p1.id  # p1 starts as X
         self.game_over = False
 
         for i in range(9):
             self.add_item(self.make_button(i))
 
-    def check_win(self, p):
-        wins = [
-            (0,1,2),(3,4,5),(6,7,8),
-            (0,3,6),(1,4,7),(2,5,8),
-            (0,4,8),(2,4,6)
-        ]
-        return any(self.board[a] == self.board[b] == self.board[c] == p for a,b,c in wins)
+    def check_win(self, mark):
+        return any(
+            self.board[a] == self.board[b] == self.board[c] == mark
+            for a, b, c in wins
+        )
 
     def check_draw(self):
         return " " not in self.board
-
-    def end_game(self):
-        self.game_over = True
-        for item in self.children:
-            item.disabled = True
 
     def make_button(self, i):
         btn = discord.ui.Button(
@@ -59,56 +61,75 @@ class TicTacToe(discord.ui.View):
             if self.game_over:
                 return
 
+            if interaction.user.id != self.turn:
+                await interaction.response.send_message("not your turn", ephemeral=True)
+                return
+
             if self.board[i] != " ":
                 return
 
-            # user move
-            self.board[i] = "X"
-            btn.label = "❌"
+            mark = "❌" if interaction.user.id == self.p1.id else "🟢"
+            self.board[i] = mark
+
+            btn.label = mark
             btn.disabled = True
 
             await interaction.response.defer()
 
-            if self.check_win("X"):
-                self.end_game()
-                await interaction.edit_original_response(content="you win", view=self)
+            # win check
+            if self.check_win(mark):
+                self.game_over = True
+                for item in self.children:
+                    item.disabled = True
+
+                winner = interaction.user.mention
+                await interaction.edit_original_response(
+                    content=f"{winner} wins",
+                    view=self
+                )
                 return
 
+            # draw check
             if self.check_draw():
-                self.end_game()
-                await interaction.edit_original_response(content="draw", view=self)
+                self.game_over = True
+                for item in self.children:
+                    item.disabled = True
+
+                await interaction.edit_original_response(
+                    content="draw",
+                    view=self
+                )
                 return
 
-            # bot move
-            empty = [x for x, v in enumerate(self.board) if v == " "]
-            if empty:
-                m = random.choice(empty)
-                self.board[m] = "O"
-                self.children[m].label = "🟢"
-                self.children[m].disabled = True
+            # swap turns
+            self.turn = self.p2.id if self.turn == self.p1.id else self.p1.id
 
-            if self.check_win("O"):
-                self.end_game()
-                await interaction.edit_original_response(content="bot wins", view=self)
-                return
-
-            if self.check_draw():
-                self.end_game()
-                await interaction.edit_original_response(content="draw", view=self)
-                return
-
-            await interaction.edit_original_response(content="your turn", view=self)
+            await interaction.edit_original_response(
+                content=f"{self.p1.mention} vs {self.p2.mention} | turn: <@{self.turn}>",
+                view=self
+            )
 
         btn.callback = callback
         return btn
 
 
-@tree.command(name="tictactoe", description="play vs bot")
-@discord.app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-async def ttt(interaction: discord.Interaction):
+@tree.command(name="tictactoe", description="play vs another player")
+@app_commands.describe(user="who you want to fight")
+@discord.app_commands.allowed_contexts(
+    guilds=True,
+    dms=True,
+    private_channels=True
+)
+async def ttt(interaction: discord.Interaction, user: discord.User):
+    if user.id == interaction.user.id:
+        await interaction.response.send_message("you can't fight yourself lil bro", ephemeral=True)
+        return
+
+    view = TicTacToePvP(interaction.user, user)
+
     await interaction.response.send_message(
-        "your turn",
-        view=TicTacToe()
+        f"tictactoe: {interaction.user.mention} vs {user.mention} | {interaction.user.mention} starts",
+        view=view
     )
 
 
