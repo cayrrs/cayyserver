@@ -178,9 +178,9 @@ class RPSView(discord.ui.View):
 
 
 @tree.command(name="rps", description="rock paper scissors vs someone")
-@app_commands.describe(user="who you want to fight")
+@app_commands.describe(user="who to fight")
 @discord.app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-async def rps(interaction: discord.Interaction, user: discord.Member):
+async def rps(interaction: discord.Interaction, user: discord.User):
     if user.bot:
         await interaction.response.send_message("no bots bro", ephemeral=True)
         return
