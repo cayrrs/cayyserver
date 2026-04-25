@@ -113,8 +113,6 @@ async def ttt(interaction: discord.Interaction):
 
 
 
-tree = app_commands.CommandTree(discord.Client(intents=discord.Intents.default()))
-
 choices = ["rock", "paper", "scissors"]
 
 wins = {
@@ -123,116 +121,77 @@ wins = {
     "paper": "rock"
 }
 
-rps_queue = []
-
-
-# ---------------- QUEUE VIEW ----------------
-
-class QueueView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.button(label="queue up", style=discord.ButtonStyle.green)
-    async def queue(self, interaction: discord.Interaction, button: discord.ui.Button):
-        user = interaction.user
-
-        if user in rps_queue:
-            await interaction.response.send_message("already queued", ephemeral=True)
-            return
-
-        rps_queue.append(user)
-        await interaction.response.send_message("queued", ephemeral=True)
-
-        if len(rps_queue) >= 2:
-            p1 = rps_queue.pop(0)
-            p2 = rps_queue.pop(0)
-
-            await start_match(interaction.client, p1, p2, interaction.channel)
-
-
-# ---------------- GAME VIEW ----------------
-
 class RPSView(discord.ui.View):
     def __init__(self, p1, p2):
-        super().__init__(timeout=120)
+        super().__init__(timeout=60)
         self.p1 = p1
         self.p2 = p2
-        self.picks = {}
+
+        self.choices = {}  # user_id -> choice
+
+    def check_done(self):
+        return self.p1.id in self.choices and self.p2.id in self.choices
 
     def resolve(self):
-        a = self.picks[self.p1.id]
-        b = self.picks[self.p2.id]
+        a = self.choices[self.p1.id]
+        b = self.choices[self.p2.id]
 
         if a == b:
             return "draw"
 
         if wins[a] == b:
             return f"{self.p1.mention} wins"
-        return f"{self.p2.mention} wins"
+        else:
+            return f"{self.p2.mention} wins"
 
     async def handle_pick(self, interaction, pick):
         if interaction.user.id not in (self.p1.id, self.p2.id):
-            await interaction.response.send_message("not your match", ephemeral=True)
+            await interaction.response.send_message("not your game", ephemeral=True)
             return
 
-        if interaction.user.id in self.picks:
+        if interaction.user.id in self.choices:
             await interaction.response.send_message("already picked", ephemeral=True)
             return
 
-        self.picks[interaction.user.id] = pick
-        await interaction.response.send_message(f"picked {pick}", ephemeral=True)
+        self.choices[interaction.user.id] = pick
+        await interaction.response.send_message(f"you picked {pick}", ephemeral=True)
 
-        if len(self.picks) == 2:
+        if self.check_done():
             result = self.resolve()
-
             for item in self.children:
                 item.disabled = True
 
-            await interaction.message.edit(
-                content=f"rps finished: {result}",
-                view=self
-            )
+            await interaction.message.edit(content=f"rps done: {result}", view=self)
+
 
     @discord.ui.button(label="rock", style=discord.ButtonStyle.secondary)
-    async def rock(self, interaction, button):
+    async def rock(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_pick(interaction, "rock")
 
-    @discord.ui.button(label="paper", style=discord.ButtonStyle.secondary)
-    async def paper(self, interaction, button):
+    @discord.ui.button(label="paper", styale=discord.ButtonStyle.secondary)
+    async def paper(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_pick(interaction, "paper")
 
     @discord.ui.button(label="scissors", style=discord.ButtonStyle.secondary)
-    async def scissors(self, interaction, button):
+    async def scissors(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_pick(interaction, "scissors")
 
 
-# ---------------- MATCH START ----------------
+@tree.command(name="rps", description="rock paper scissors vs someone")
+@app_commands.describe(user="who to fight")
+@discord.app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+async def rps(interaction: discord.Interaction, user: discord.User):
+    if user.bot:
+        await interaction.response.send_message("no bots bro", ephemeral=True)
+        return
 
-async def start_match(client, p1, p2, channel):
-    view = RPSView(p1, p2)
+    view = RPSView(interaction.user, user)
 
-    await channel.send(
-        f"rps match: {p1.mention} vs {p2.mention}",
+    await interaction.response.send_message(
+        f"rps match: {interaction.user.mention} vs {user.mention}",
         view=view
     )
 
-
-# ---------------- QUEUE COMMAND ----------------
-
-@tree.command(name="rps-queue", description="join rps queue")
-@discord.app_commands.allowed_contexts(
-    guilds=True,
-    dms=True,
-    private_channels=True
-)
-async def rps_queue_cmd(interaction: discord.Interaction):
-    embed = discord.Embed(
-        title="rps queue",
-        description="click to join queue",
-        color=0x00ff00
-    )
-
-    await interaction.response.send_message(embed=embed, view=QueueView())
 
 
 @tree.command(name="pc", description="shows pc stats")
