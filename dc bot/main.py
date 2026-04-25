@@ -31,9 +31,20 @@ class TicTacToe(discord.ui.View):
         for i in range(9):
             self.add_item(self.make_button(i))
 
+    def check_win(self, p):
+        wins = [
+            (0,1,2),(3,4,5),(6,7,8),
+            (0,3,6),(1,4,7),(2,5,8),
+            (0,4,8),(2,4,6)
+        ]
+        return any(self.board[a]==self.board[b]==self.board[c]==p for a,b,c in wins)
+
+    def check_draw(self):
+        return " " not in self.board
+
     def make_button(self, i):
         btn = discord.ui.Button(
-            label="⬜",   # IMPORTANT: must exist
+            label="⬜",
             style=discord.ButtonStyle.secondary,
             row=i // 3
         )
@@ -46,13 +57,33 @@ class TicTacToe(discord.ui.View):
             btn.label = "❌"
             btn.disabled = True
 
+            if self.check_win("X"):
+                self.disable_all_items()
+                await interaction.response.edit_message(content="you win", view=self)
+                return
+
+            if self.check_draw():
+                self.disable_all_items()
+                await interaction.response.edit_message(content="draw", view=self)
+                return
+
             # bot move
-            empty = [x for x, v in enumerate(self.board) if v == " "]
+            empty = [x for x,v in enumerate(self.board) if v==" "]
             if empty:
                 m = random.choice(empty)
                 self.board[m] = "O"
                 self.children[m].label = "🟢"
                 self.children[m].disabled = True
+
+            if self.check_win("O"):
+                self.disable_all_items()
+                await interaction.response.edit_message(content="bot wins", view=self)
+                return
+
+            if self.check_draw():
+                self.disable_all_items()
+                await interaction.response.edit_message(content="draw", view=self)
+                return
 
             await interaction.response.edit_message(view=self)
 
