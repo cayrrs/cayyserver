@@ -19,6 +19,7 @@ async def on_ready():
     print(f"logged in as {client.user}")
 
 @tree.command(name="pc", description="shows pc stats")
+@app_commands.guild_only(False)
 async def pc(interaction: discord.Interaction):
     cpu = psutil.cpu_percent(interval=1)
     ram = psutil.virtual_memory()
