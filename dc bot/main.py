@@ -35,7 +35,7 @@ class TicTacToePvP(discord.ui.View):
         self.board = [" "] * 9
         self.p1 = p1
         self.p2 = p2
-        self.turn = p1.id  # p1 starts as X
+        self.turn = p1.id
         self.game_over = False
 
         for i in range(9):
@@ -61,6 +61,7 @@ class TicTacToePvP(discord.ui.View):
             if self.game_over:
                 return
 
+            # turn check
             if interaction.user.id != self.turn:
                 await interaction.response.send_message("not your turn", ephemeral=True)
                 return
@@ -68,13 +69,17 @@ class TicTacToePvP(discord.ui.View):
             if self.board[i] != " ":
                 return
 
+            # mark
             mark = "❌" if interaction.user.id == self.p1.id else "🟢"
             self.board[i] = mark
-
             btn.label = mark
             btn.disabled = True
 
-            await interaction.response.defer()
+            # MUST defer button interactions (prevents 10062)
+            try:
+                await interaction.response.defer()
+            except:
+                return
 
             # win check
             if self.check_win(mark):
@@ -82,11 +87,13 @@ class TicTacToePvP(discord.ui.View):
                 for item in self.children:
                     item.disabled = True
 
-                winner = interaction.user.mention
-                await interaction.edit_original_response(
-                    content=f"{winner} wins",
-                    view=self
-                )
+                try:
+                    await interaction.edit_original_response(
+                        content=f"{interaction.user.mention} wins",
+                        view=self
+                    )
+                except:
+                    pass
                 return
 
             # draw check
@@ -95,23 +102,31 @@ class TicTacToePvP(discord.ui.View):
                 for item in self.children:
                     item.disabled = True
 
-                await interaction.edit_original_response(
-                    content="draw",
-                    view=self
-                )
+                try:
+                    await interaction.edit_original_response(
+                        content="draw",
+                        view=self
+                    )
+                except:
+                    pass
                 return
 
-            # swap turns
+            # swap turn
             self.turn = self.p2.id if self.turn == self.p1.id else self.p1.id
 
-            await interaction.edit_original_response(
-                content=f"{self.p1.mention} vs {self.p2.mention} | turn: <@{self.turn}>",
-                view=self
-            )
+            try:
+                await interaction.edit_original_response(
+                    content=f"{self.p1.mention} vs {self.p2.mention} | turn: <@{self.turn}>",
+                    view=self
+                )
+            except:
+                pass
 
         btn.callback = callback
         return btn
 
+
+# ---------------- COMMAND ----------------
 
 @tree.command(name="tictactoe", description="play vs another player")
 @app_commands.describe(user="who you want to fight")
@@ -121,14 +136,16 @@ class TicTacToePvP(discord.ui.View):
     private_channels=True
 )
 async def ttt(interaction: discord.Interaction, user: discord.User):
+
     if user.id == interaction.user.id:
-        await interaction.response.send_message("you can't fight yourself lil bro", ephemeral=True)
+        await interaction.response.send_message("you can't fight yourself", ephemeral=True)
         return
 
     view = TicTacToePvP(interaction.user, user)
 
+    # IMPORTANT: respond immediately (no defer)
     await interaction.response.send_message(
-        f"tictactoe: {interaction.user.mention} vs {user.mention} | {interaction.user.mention} starts",
+        f"tictactoe: {interaction.user.mention} vs {user.mention}\n{interaction.user.mention} starts",
         view=view
     )
 
